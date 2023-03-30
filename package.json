@@ -4,7 +4,7 @@
   "description": "Implementation for Node-RED of a SocketIO Sever",
   "dependencies": {
     "jsonwebtoken": "^9.0.0",
-    "socket.io": ">=3.1.0"
+    "socket.io": ">=4.5.2"
   },
   "node-red": {
     "nodes": {

@@ -9,7 +9,8 @@
             bindToNode: { value: false },
             corsOrigins: { value: "*" },
             corsMethods: { value: "GET,POST" },
-            enableCors: { value: false }
+            enableCors: { value: false },
+            jwtkey: { value: ""}
         },
         label: function () {
             return this.bindToNode ? "socketIO server bind to Node-red" : "socketIO server at " + this.port;
@@ -62,6 +63,10 @@
 	    <label for="node-config-input-corsMethods"></i> Cors Methods</label>
 		<input type="text" id="node-config-input-corsMethods">
 	</div>
+	<div class="form-row">
+		<label for="node-config-input-jwtkey"><i class="fa fa-paper-plane-o"></i>JWT KEY?</label>
+		<input type="text" id="node-config-input-jwtkey" placeholder="Key for jwt if using auth">
+	</div>
 </script>
 
 <script type="text/x-red" data-help-name="socketio-config">
@@ -100,8 +105,8 @@
                     var row = $('<div/>').appendTo(container);
                     var label = $('<label/>', { for: "node-input-rule-value-" + i, style: "margin-left: 3px;" }).text("Topic " + i).appendTo(row);
                     var valueField = $('<input/>', { class: "node-input-rule-value", type: "text", style: "margin-left: 5px;" }).appendTo(row);
-                    var callbackLabel = $('<label/>', { for: "node-input-rule-callback-" + i, style: "margin-left: 3px;" }).text("Topic " + i).appendTo(row);
-                    var callbackCheckbox = $('<input/>', { class: "node-input-rule-callback", type: "checkbox", style: "margin-left: 5px;", checked: opt.r.c }).appendTo(row);
+                    var callbackLabel = $('<label/>', { for: "node-input-rule-callback-" + i, style: "margin-left: 3px;" }).text("Callback " + i).appendTo(row);
+                    var callbackCheckbox = $('<input/>', { class: "node-input-rule-callback", type: "checkbox", style: "margin-left: 5px; width: auto;", checked: opt.r.c }).appendTo(row);
 
                     valueField.val(opt.r.v);
                 }
@@ -120,6 +125,7 @@
                 var rule = $(this);
                 var r = {};
                 r.v = rule.find(".node-input-rule-value").val();
+                r.c = rule.find(".node-input-rule-callback").is(":checked");
                 node.rules.push(r);
             });
         }
@@ -315,4 +321,44 @@
 <script type="text/x-red" data-help-name="socketio-rooms">
     <p>A node that gives you the list of rooms in socketio</p>
     
+</script>
+
+
+<!-- node socketIO join, join a room-->
+<script type="text/javascript">
+    RED.nodes.registerType('socketio-listener-callback', {
+        category: "SocketIO",
+        color: "rgb(0, 230, 184)",
+        defaults: {
+            name: { value: "" },
+            listenerName: { value: "", required: true },
+        },
+        inputs: 1,
+        outputs: 0,
+        icon: "bridge.png",
+        label: function () {
+            return this.name || "SocketIO Listener Callback";
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="socketio-listener-callback">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+	<div class="form-row">
+        <label for="node-input-listenerName"><i class="fa fa-tag"></i>Listener Name</label>
+        <input type="text" id="node-input-listenerName">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="socketio-listener-callback">
+   <p>Socket IO Listener Callback node</p>
+   <p>Implementation of a SocketIO server</p>
+   <p>This node can be used to send a callback to a listener event. Callbacks must be ticked in <b>Socket IO Input node</b></p>
+   <br />
+   <p>This node accepts on input:</p>
+   <p><code>msg.callback</code> as <i>String</i> object to send back to connecting client</p>
+   <br />
 </script>
