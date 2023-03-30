@@ -4,9 +4,11 @@
 
 module.exports = function(RED) {
   const { Server } = require("socket.io");
+  const jwt = require("jsonwebtoken");
   var io;
   var customProperties = {};
   var sockets = [];
+  var callbacks = [];
 
   function socketIoConfig(n) {
     RED.nodes.createNode(this, n);
@@ -66,22 +68,23 @@ module.exports = function(RED) {
     this.name = n.name;
     this.server = RED.nodes.getNode(n.server);
     this.rules = n.rules || [];
+    this.jwtkey = n.jwtkey;
 
     this.specialIOEvent = [
-	// Events emitted by the Manager:
+      // Events emitted by the Manager:
       { v: "open" },
       { v: "error" },
-	  { v: "close" },
-	  { v: "ping" },
-	  { v: "packet" },
-	  { v: "reconnect_attempt" },
-	  { v: "reconnect" },
-	  { v: "reconnect_error" },
-	  { v: "reconnect_failed" },
-	  
-	  // Events emitted by the Socket:
+      { v: "close" },
+      { v: "ping" },
+      { v: "packet" },
+      { v: "reconnect_attempt" },
+      { v: "reconnect" },
+      { v: "reconnect_error" },
+      { v: "reconnect_failed" },
+      
+      // Events emitted by the Socket:
       { v: "connect" },
-	  { v: "connect_error" },
+      { v: "connect_error" },
       { v: "disconnect" }
     ];
 
@@ -105,15 +108,58 @@ module.exports = function(RED) {
         node.send(msg);
       });
     }
+    
+
+    function addListenerIn(socket, val, i) {
+
+      socket.on(val.v, (msgin, callback) => {
+
+        callbacks[val.v] = callback;
+        var msg = {};
+        RED.util.setMessageProperty(msg, "payload", msgin, true);
+        RED.util.setMessageProperty(msg, "socketIOEvent", val.v, true);
+        RED.util.setMessageProperty(msg, "socketIOId", socket.id, true);
+        if (
+          customProperties[RED.util.getMessageProperty(msg, "socketIOId")] !=
+          null
+        ) {
+          RED.util.setMessageProperty(
+            msg,
+            "socketIOStaticProperties",
+            customProperties[RED.util.getMessageProperty(msg, "socketIOId")],
+            true
+          );
+        }
+        node.send(msg);
+      });
+    }
+
+    // middleware authentication check
+    io.use((socket, next) => {
+      if(socket.handshake.auth){
+        const { token } = socket.handshake.auth;
+        try {
+            if(socket.handshake.auth.server == true){
+              const decoded = jwt.verify(token, node.jwtkey);
+              next();
+            }
+          } catch (err) {
+            console.log('Incorrect JWT');
+            return next(new Error("Incorrect JWT"));
+        }
+        }
+    });
 
     io.on("connection", function(socket) {
       sockets.push(socket);
+      console.log(node.rules);
       node.rules.forEach(function(val, i) {
         addListener(socket, val, i);
+        //addListenerIn(socket, val, i);
       });
       //Adding support for all other special messages
       node.specialIOEvent.forEach(function(val, i) {
-        addListener(socket, val, i);
+        addListener(val, i);
       });
     });
   }
@@ -229,10 +275,28 @@ module.exports = function(RED) {
     });
   }
 
+  function listenerCallback(n) {
+    RED.nodes.createNode(this, n);
+    callbacks[val.v](i);
+    node.on('input', (msg) => {
+      // unknown issue valueof works fine, but throws console error. 
+      let message =  msg.callback.valueOf();
+      if( callbacks[node.eventName] !== undefined ) {
+        callbacks[node.eventName](message);
+        node.status({ fill: 'green', shape: 'ring', text: 'Callback Sent' + message });
+      }else{
+        node.status({ fill: 'red', shape: 'ring', text: 'Event name must match listener in' });
+      }
+
+    });
+
+  }
+
   RED.nodes.registerType("socketio-config", socketIoConfig);
   RED.nodes.registerType("socketio-in", socketIoIn);
   RED.nodes.registerType("socketio-out", socketIoOut);
   RED.nodes.registerType("socketio-join", socketIoJoin);
   RED.nodes.registerType("socketio-rooms", socketIoRooms);
   RED.nodes.registerType("socketio-leave", socketIoLeave);
+  RED.nodes.registerType("socketio-listen-callback", listenerCallback);
 };

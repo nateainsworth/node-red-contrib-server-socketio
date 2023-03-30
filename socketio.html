@@ -94,11 +94,15 @@
                 removable: true,
                 addItem: function (container, i, opt) {
                     if (!opt.hasOwnProperty('r')) {
-                        opt.r = { v: "" };
+                        opt.r = { v: "",
+                                  c: "false" };
                     }
                     var row = $('<div/>').appendTo(container);
                     var label = $('<label/>', { for: "node-input-rule-value-" + i, style: "margin-left: 3px;" }).text("Topic " + i).appendTo(row);
                     var valueField = $('<input/>', { class: "node-input-rule-value", type: "text", style: "margin-left: 5px;" }).appendTo(row);
+                    var callbackLabel = $('<label/>', { for: "node-input-rule-callback-" + i, style: "margin-left: 3px;" }).text("Topic " + i).appendTo(row);
+                    var callbackCheckbox = $('<input/>', { class: "node-input-rule-callback", type: "checkbox", style: "margin-left: 5px;", checked: opt.r.c }).appendTo(row);
+
                     valueField.val(opt.r.v);
                 }
             });
