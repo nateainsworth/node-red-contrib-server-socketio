@@ -20,7 +20,7 @@ module.exports = function(RED) {
     this.corsOrigins = n.corsOrigins || "*";
     this.corsMethods = n.corsMethods.toUpperCase().split(",") || "GET,POST";
     this.enableCors = n.enableCors || false;
-    this.jwtkey = n.jwtkey || false;
+ 
 
     node.log("socketIoConfig - CORS METHODS " + JSON.stringify(this.corsMethods));
     node.log("socketIoConfig - CORS ORIGINS " + JSON.stringify(this.corsOrigins));
@@ -39,28 +39,7 @@ module.exports = function(RED) {
 
     if (this.bindToNode) {      
       io = new Server(RED.server, corsOptions);
-
-      console.log("Setting up JWT");
-      if(this.jwtkey != false){
-        // middleware authentication check
-        io.use((socket, next) => {
-          console.log('Checking JWT');
-          console.log(socket);
-          if(socket.handshake.auth){
-            const { token } = socket.handshake.auth;
-            try {
-                const decoded = jwt.verify(token, this.jwtkey);
-                next();
-              } catch (err) {
-                console.log('Incorrect JWT');
-                node.status({ fill: 'red', shape: 'ring', text: 'JWT Issue' });
-                return next(new Error("Incorrect JWT"));
-                
-            }
-          }
-        });
-       
-      } 
+      
 
 
     } else {            
@@ -69,6 +48,7 @@ module.exports = function(RED) {
       io.serveClient(node.sendClient);
       io.path(node.path);
       io.listen(node.port);
+      
     }
     var bindOn = this.bindToNode
       ? "bind to Node-red port"
@@ -93,6 +73,8 @@ module.exports = function(RED) {
     this.name = n.name;
     this.server = RED.nodes.getNode(n.server);
     this.rules = n.rules || [];
+    this.jwtkey = n.jwtkey || false;
+    node.status({ fill: 'red', shape: 'ring', text: "Disconnected"});
 
     this.specialIOEvent = [
       // Events emitted by the Manager:
@@ -115,6 +97,7 @@ module.exports = function(RED) {
     function addListener(socket, val, i) {
       if(val.c == "false"){
         socket.on(val.v, function(msgin) {
+          node.status({ fill: 'green', shape: 'ring', text: 'Incoming ' + val.v});
           var msg = {};
           RED.util.setMessageProperty(msg, "payload", msgin, true);
           RED.util.setMessageProperty(msg, "socketIOEvent", val.v, true);
@@ -134,6 +117,7 @@ module.exports = function(RED) {
         });
       }else{
         socket.on(val.v, (msgin, callback) => {
+          node.status({ fill: 'green', shape: 'ring', text: 'Incoming ' + val.v});
           callbacks[val.v] = callback;
           var msg = {};
           RED.util.setMessageProperty(msg, "payload", msgin, true);
@@ -155,8 +139,29 @@ module.exports = function(RED) {
       }
     }
     
+    if(this.jwtkey != false){
+      // middleware authentication check
+      io.use((socket, next) => {
+        console.log('Checking JWT');
+        if(socket.handshake.auth){
+          const { token } = socket.handshake.auth;
+          try {
+              const decoded = jwt.verify(token, this.jwtkey);
+              next();
+            } catch (err) {
+              console.log('Incorrect JWT');
+              node.status({ fill: 'red', shape: 'ring', text: 'Incorrect JWT' });
+              return next(new Error("Incorrect JWT"));
+              
+          }
+        }
+      });
+     
+    } 
     
     io.on("connection", function(socket) {
+      node.status({ fill: 'green', shape: 'ring', text: 'Connected'});
+
       sockets.push(socket);
 
       node.rules.forEach(function(val, i) {
@@ -166,7 +171,14 @@ module.exports = function(RED) {
       node.specialIOEvent.forEach(function(val, i) {
         addListener(socket, val, i);
       });
+
+      socket.on("connect_error", (err) => {
+        node.status({ fill: 'red', shape: 'ring', text: "error connecting see console"});
+        console.log(`connect_error due to ${err.message}`);
+      });
     });
+
+
   }
 
   function socketIoOut(n) {
@@ -290,7 +302,7 @@ module.exports = function(RED) {
       let message = msg.callback.valueOf();
       if( callbacks[node.listenerName] !== undefined ) {
         callbacks[node.listenerName](message);
-        node.status({ fill: 'green', shape: 'ring', text: 'Callback Sent' + message });
+        node.status({ fill: 'green', shape: 'ring', text: 'Callback Sent ' + message });
       }else{
         node.status({ fill: 'red', shape: 'ring', text: 'Event name must match listener in' });
       }

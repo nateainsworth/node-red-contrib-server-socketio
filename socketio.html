@@ -9,8 +9,8 @@
             bindToNode: { value: false },
             corsOrigins: { value: "*" },
             corsMethods: { value: "GET,POST" },
-            enableCors: { value: false },
-            jwtkey: { value: ""}
+            enableCors: { value: false }
+
         },
         label: function () {
             return this.bindToNode ? "socketIO server bind to Node-red" : "socketIO server at " + this.port;
@@ -63,15 +63,13 @@
 	    <label for="node-config-input-corsMethods"></i> Cors Methods</label>
 		<input type="text" id="node-config-input-corsMethods">
 	</div>
-	<div class="form-row">
-		<label for="node-config-input-jwtkey"><i class="fa fa-paper-plane-o"></i>JWT KEY?</label>
-		<input type="text" id="node-config-input-jwtkey" placeholder="Key for jwt if using auth">
-	</div>
+	
 </script>
 
 <script type="text/x-red" data-help-name="socketio-config">
    <p>Socket IO node</p>
    <p>VUOTO</p>
+   <p>JWT is set on socket in not in config for displaying errors</p>
 </script>
 
 <!-- nodo socketIO in, avrà lo scopo di accogliere i client-->
@@ -84,7 +82,8 @@
         defaults: {
             name: { value: "" },
             server: { value: "", required: true, type: "socketio-config" },
-            rules: { value: [{ v: "" }] }
+            rules: { value: [{ v: "", c: false}] },
+            jwtkey: { value: ""}
         },
         inputs: 0,
         outputs: 1,
@@ -100,7 +99,7 @@
                 addItem: function (container, i, opt) {
                     if (!opt.hasOwnProperty('r')) {
                         opt.r = { v: "",
-                                  c: "false" };
+                                  c: false };
                     }
                     var row = $('<div/>').appendTo(container);
                     var label = $('<label/>', { for: "node-input-rule-value-" + i, style: "margin-left: 3px;" }).text("Topic " + i).appendTo(row);
@@ -144,6 +143,12 @@
 	<div class="form-row node-input-rule-container-row">
         <ol id="node-input-rule-container"></ol>
     </div>
+    <div class="form-row">
+		<label for="node-input-jwtkey"><i class="fa fa-paper-plane-o"></i>JWT KEY?</label>
+		<input type="text" id="node-input-jwtkey" placeholder="Key for jwt if using auth">
+        <p>Adding or changing a JWT will require restarting Node Red</p>
+	</div>
+
 </script>
 
 <script type="text/x-red" data-help-name="socketio-in">
@@ -159,6 +164,26 @@
    <br />
    <p>The user can add all the topic/event he want</p>
    <p>The predefined <code>connect/disconnect</code> etc... events are automatically implemented</p>
+   <br />
+   <p>If <code>callbacks</code> are checked it will require a <b>listener callback</b>.</p>
+   <p>Your client side emit should look like the following with arguments or you will have callback errors. If not args are needed pass a blank string</p>
+<pre>
+let args = "your args" // or {arg1:"value", arg2:"value2"}
+socket.emit("your-event",args,(response)=>{
+    // do your stuff here... like
+    console.log(response);
+});
+</pre>
+   <br />
+   <p>When using <b>JWT</b> your client should look like this example. Also restart node red if adding or changing JWT token</p>
+<pre>
+let socket = io(URL, {
+    auth: {
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+    }
+});
+</pre>
+
 </script>
 
 <!-- nodo socketIO out, avrà lo scopo di effettuare l'emit dei dati verso il server-->
