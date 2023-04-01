@@ -1,6 +1,6 @@
 {
-  "name": "node-red-contrib-socketio-javis86",
-  "version": "1.1.3",
+  "name": "node-red-contrib-socketio-server-jwt",
+  "version": "1.1.4",
   "description": "Implementation for Node-RED of a SocketIO Sever",
   "dependencies": {
     "jsonwebtoken": "^9.0.0",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/javis86/node-red-contrib-socketio.git"
+    "url": "git+https://github.com/nateainsworth/node-red-contrib-socketio.git"
   },
   "keywords": [
     "node-red"
@@ -25,7 +25,7 @@
   "author": "Telemaco Gallimberti",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/javis86/node-red-contrib-socketio/issues"
+    "url": "https://github.com/nateainsworth/node-red-contrib-socketio/issues"
   },
-  "homepage": "https://github.com/javis86/node-red-contrib-socketio#readme"
+  "homepage": "https://github.com/nateainsworth/node-red-contrib-socketio#readme"
 }
