@@ -1,14 +1,14 @@
-# node-red-contrib-socketio-javis86
+# node-red-contrib-socketio-jwt
 Implementation for [Node-RED](https://nodered.org/) of the popular [Socket.IO](http://socket.io/).
 
-from original project node-red-contrib-socketio
+from the javis86 version of the original project node-red-contrib-socketio
 
 
 
 ## Installation
 To install node-red-contrib-socketio use this command
 
-`npm i node-red-contrib-socketio-javis86`
+`npm i node-red-contrib-socketio-server-jwt`
 
 ## Composition
 The Socket.IO implementation is made with
