@@ -20,6 +20,8 @@ The Socket.IO implementation is made with
 * 1 node to send callbacks for listener events, make sure to check callback in input node for using this node
 
 ## Usage
+Note: When using the bind option to run on Node Reds port, JWT tokens wont be updated when deploying as the server will still be running on with the previous setup. Otherwise closing the server would also close node red every time you click deploy. Listener events will be updated however so it will be unlikely to effect you. If running on a different port the server will restart updating JWT setups.
+
 To see an example usage go to [Example Chat App](https://flows.nodered.org/flow/71f7da3a14951acb67f94bac1f71812a)
 
 > Socket.IO Setup

@@ -9,6 +9,8 @@ module.exports = function(RED) {
   var customProperties = {};
   var sockets = [];
   var callbacks = [];
+  var setupRan = false;
+  var currentJWT = null;
 
   function socketIoConfig(n) {
     RED.nodes.createNode(this, n);
@@ -36,35 +38,42 @@ module.exports = function(RED) {
         }
       };
     }
-
+  
+  // if binding to same port as NR avoids handle server.handleUpgrade() issues
+  if(!setupRan || !this.bindToNode){
     if (this.bindToNode) {      
       io = new Server(RED.server, corsOptions);
-      
-
-
     } else {            
       io = new Server(corsOptions);
       
       io.serveClient(node.sendClient);
       io.path(node.path);
       io.listen(node.port);
-      
     }
     var bindOn = this.bindToNode
       ? "bind to Node-red port"
       : "on port " + this.port;
     node.log("Created server " + bindOn);
+  }else{
+    console.log("Node red needs restarting");
+  }
 
     node.on("close", function() {
+      console.log("closing socket server");
       if (!this.bindToNode) {
         io.close();
+      }else{
+        // wont restart node red when the server is bind to node red but avoids node red crashing.
+        setupRan = true;
       }
       sockets.forEach(function (socket) {
         node.log('disconnect:' + socket.id);
         socket.disconnect(true);
       });
       sockets = [];
+      console.log("socket server closed");
     });
+    
   }
 
   function socketIoIn(n) {
@@ -140,43 +149,58 @@ module.exports = function(RED) {
     }
     
     if(this.jwtkey != false){
-      // middleware authentication check
-      io.use((socket, next) => {
-        console.log('Checking JWT');
-        if(socket.handshake.auth){
-          const { token } = socket.handshake.auth;
-          try {
-              const decoded = jwt.verify(token, this.jwtkey);
-              next();
-            } catch (err) {
-              console.log('Incorrect JWT');
-              node.status({ fill: 'red', shape: 'ring', text: 'Incorrect JWT' });
-              return next(new Error("Incorrect JWT"));
-              
+      // check if setup already ran if it has setup will contain JWT
+      if(!setupRan || !this.bindToNode){
+        // middleware authentication check
+        io.use((socket, next) => {
+          console.log('Checking JWT');
+          if(socket.handshake.auth){
+            const { token } = socket.handshake.auth;
+            try {
+                const decoded = jwt.verify(token, this.jwtkey);
+                next();
+              } catch (err) {
+                console.log('Incorrect JWT');
+                node.status({ fill: 'red', shape: 'ring', text: 'Incorrect JWT' });
+                return next(new Error("Incorrect JWT"));
+                
+            }
           }
+        });
+        currentJWT = this.jwtkey;
+      }else{
+        if(this.jwtkey != currentJWT){
+          node.status({ fill: 'red', shape: 'ring', text: 'JWT Update restart NR' });
         }
-      });
+      }
      
     } 
     
-    io.on("connection", function(socket) {
-      node.status({ fill: 'green', shape: 'ring', text: 'Connected'});
+    //if(!setupRan){
+      console.log("setting up");
+      io.on("connection", function(socket) {
+        node.status({ fill: 'green', shape: 'ring', text: 'Connected'});
 
-      sockets.push(socket);
+        sockets.push(socket);
 
-      node.rules.forEach(function(val, i) {
-        addListener(socket, val, i);
-      });
-      //Adding support for all other special messages
-      node.specialIOEvent.forEach(function(val, i) {
-        addListener(socket, val, i);
-      });
+        node.rules.forEach(function(val, i) {
+          addListener(socket, val, i);
+        });
+        //Adding support for all other special messages
+        node.specialIOEvent.forEach(function(val, i) {
+          addListener(socket, val, i);
+        });
 
-      socket.on("connect_error", (err) => {
-        node.status({ fill: 'red', shape: 'ring', text: "error connecting see console"});
-        console.log(`connect_error due to ${err.message}`);
+        socket.on("connect_error", (err) => {
+          node.status({ fill: 'red', shape: 'ring', text: "error connecting see console"});
+          console.log(`connect_error due to ${err.message}`);
+        });
       });
-    });
+      setupRan = true;
+    //}else{
+    //  console.log("setup already ran");
+ 
+    //}
 
 
   }
