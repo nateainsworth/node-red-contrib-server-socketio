@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-socketio-server-jwt",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Implementation for Node-RED of a SocketIO Sever",
   "dependencies": {
     "jsonwebtoken": "^9.0.0",
